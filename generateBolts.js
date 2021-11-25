@@ -54,7 +54,9 @@ var Lightning = /** @class */ (function () {
             setTimeout(function () {
                 _this.regenerate();
             }, _this.frameDuration);
-            _this.drawEndpoints();
+            if (_this.showEndpoints) {
+                _this.drawEndpoints();
+            }
         });
     };
     Lightning.prototype.drawEndpoints = function () {

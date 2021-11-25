@@ -27,7 +27,7 @@
           branchMaxLengthScale: parseFloat(document.getElementById("branch-max-length").value),
           maxSegmentationLevel: parseInt(document.getElementById("max-segmentation-level").value, 10),
           maximumOffset: parseInt(document.getElementById("maximum-offset").value, 10),
-          showEndpoints: true,
+          showEndpoints: document.getElementById("show-endpoints").checked,
           strokeColor: document.getElementById("lightning-color").value,
           fillColor: document.getElementById("background-color").value,
           clearFrameAlpha: document.getElementById("clear-frame-alpha").value,
@@ -128,6 +128,10 @@
     <div class="form-group">
       <label for="maximum-offset">Maximum offset (max 200)</label>
       <input type="number" id="maximum-offset" name="maximum-offset" min="1" max="200" value="100">
+    </div>
+    <div class="form-group">
+      <label for="show-endpoints">Show endpoints</label>
+      <input type="checkbox" id="show-endpoints" name="show-endpoints">
     </div>
   </div>
 </body>

@@ -112,7 +112,9 @@ class Lightning {
                 this.regenerate();
             }, this.frameDuration);
 
-            this.drawEndpoints();
+            if (this.showEndpoints) {
+                this.drawEndpoints();
+            }
         })
     }
 
