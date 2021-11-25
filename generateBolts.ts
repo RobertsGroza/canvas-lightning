@@ -17,6 +17,7 @@ type LightningProps = {
     showEndpoints?: boolean,
     strokeColor: string,
     fillColor: string,
+    clearFrameAlpha: number;
 };
 
 class Segment {
@@ -61,6 +62,12 @@ class Lightning {
     private showEndpoints: boolean;
     private strokeColor: string;
     private fillColor: string;
+    /*
+        ClearFrameAlpha affects artifacts:
+        * if alpha is small f.e. 0.1 then more old lightnings is visible
+        * if alpha 1 then only current lightning is visible
+    */
+    private clearFrameAlpha: number;
 
     constructor(props: LightningProps) {
         this.canvasContext = props.canvasContext;
@@ -76,6 +83,7 @@ class Lightning {
         this.showEndpoints = props.showEndpoints;
         this.strokeColor = props.strokeColor;
         this.fillColor = props.fillColor;
+        this.clearFrameAlpha = props.clearFrameAlpha;
 
         /* Calculate step count depending on frame count */
         this.stepX = (this.endPoint.x - this.startPoint.x) / this.frameCount;
@@ -89,7 +97,10 @@ class Lightning {
                 y: this.currentEndPoint.y + this.stepY,
             };
 
-            if (this.currentEndPoint.y > this.endPoint.y) {
+            if (
+                this.startPoint.y < this.endPoint.y && this.currentEndPoint.y > this.endPoint.y && this.currentEndPoint.x > this.endPoint.x ||
+                this.endPoint.y < this.startPoint.y && this.currentEndPoint.y < this.endPoint.y && this.currentEndPoint.x < this.endPoint.x
+            ) {
                 this.currentEndPoint = this.endPoint;
                 return;
             }
@@ -157,7 +168,7 @@ class Lightning {
     private clearFrame(): void {
         this.canvasContext.beginPath();
         this.canvasContext.fillStyle = this.fillColor;
-        this.canvasContext.globalAlpha = 1;
+        this.canvasContext.globalAlpha = this.clearFrameAlpha;
         this.canvasContext.fillRect(0, 0, this.canvasContext.canvas.clientWidth, this.canvasContext.canvas.clientHeight,);
         this.canvasContext.stroke();
     }
@@ -167,7 +178,10 @@ class Lightning {
 
         segmentList.push(new Segment([this.startPoint.x, this.startPoint.y], [endPoint.x, endPoint.y], 1));
 
-        let offsetAmount = Math.min(endPoint.x / 8, this.maximumOffset); // the maximum amount to offset a lightning vertex.
+        const minOffsetAmount = this.startPoint.x < endPoint.x
+            ? (endPoint.x - this.startPoint.x) / 8
+            : (this.startPoint.x - endPoint.x) / 8;
+        let offsetAmount = Math.min(minOffsetAmount, this.maximumOffset); // the maximum amount to offset a lightning vertex.
 
         const maxLevel = Math.floor(Math.min(this.maxSegmentationLevel, 10 + endPoint.x / 100));
 

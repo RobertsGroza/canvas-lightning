@@ -32,6 +32,7 @@ var Lightning = /** @class */ (function () {
         this.showEndpoints = props.showEndpoints;
         this.strokeColor = props.strokeColor;
         this.fillColor = props.fillColor;
+        this.clearFrameAlpha = props.clearFrameAlpha;
         /* Calculate step count depending on frame count */
         this.stepX = (this.endPoint.x - this.startPoint.x) / this.frameCount;
         this.stepY = (this.endPoint.y - this.startPoint.y) / this.frameCount;
@@ -43,7 +44,8 @@ var Lightning = /** @class */ (function () {
                 x: _this.currentEndPoint.x + _this.stepX,
                 y: _this.currentEndPoint.y + _this.stepY
             };
-            if (_this.currentEndPoint.y > _this.endPoint.y) {
+            if (_this.startPoint.y < _this.endPoint.y && _this.currentEndPoint.y > _this.endPoint.y && _this.currentEndPoint.x > _this.endPoint.x ||
+                _this.endPoint.y < _this.startPoint.y && _this.currentEndPoint.y < _this.endPoint.y && _this.currentEndPoint.x < _this.endPoint.x) {
                 _this.currentEndPoint = _this.endPoint;
                 return;
             }
@@ -101,7 +103,7 @@ var Lightning = /** @class */ (function () {
     Lightning.prototype.clearFrame = function () {
         this.canvasContext.beginPath();
         this.canvasContext.fillStyle = this.fillColor;
-        this.canvasContext.globalAlpha = 1;
+        this.canvasContext.globalAlpha = this.clearFrameAlpha;
         this.canvasContext.fillRect(0, 0, this.canvasContext.canvas.clientWidth, this.canvasContext.canvas.clientHeight);
         this.canvasContext.stroke();
     };
@@ -109,7 +111,10 @@ var Lightning = /** @class */ (function () {
         var _this = this;
         var segmentList = [];
         segmentList.push(new Segment([this.startPoint.x, this.startPoint.y], [endPoint.x, endPoint.y], 1));
-        var offsetAmount = Math.min(endPoint.x / 8, this.maximumOffset); // the maximum amount to offset a lightning vertex.
+        var minOffsetAmount = this.startPoint.x < endPoint.x
+            ? (endPoint.x - this.startPoint.x) / 8
+            : (this.startPoint.x - endPoint.x) / 8;
+        var offsetAmount = Math.min(minOffsetAmount, this.maximumOffset); // the maximum amount to offset a lightning vertex.
         var maxLevel = Math.floor(Math.min(this.maxSegmentationLevel, 10 + endPoint.x / 100));
         for (var i = 0; i < maxLevel; i++) {
             var newList = [];
