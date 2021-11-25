@@ -50,7 +50,7 @@ var Lightning = /** @class */ (function () {
                 return;
             }
             _this.clearFrame();
-            _this.generateStrike(_this.currentEndPoint);
+            _this.generateStrike(_this.startPoint, _this.currentEndPoint);
             setTimeout(function () {
                 _this.regenerate();
             }, _this.frameDuration);
@@ -109,13 +109,13 @@ var Lightning = /** @class */ (function () {
         this.canvasContext.fillRect(0, 0, this.canvasContext.canvas.clientWidth, this.canvasContext.canvas.clientHeight);
         this.canvasContext.stroke();
     };
-    Lightning.prototype.generateStrike = function (endPoint) {
+    Lightning.prototype.generateStrike = function (startPoint, endPoint) {
         var _this = this;
         var segmentList = [];
-        segmentList.push(new Segment([this.startPoint.x, this.startPoint.y], [endPoint.x, endPoint.y], 1));
-        var minOffsetAmount = this.startPoint.x < endPoint.x
-            ? (endPoint.x - this.startPoint.x) / 8
-            : (this.startPoint.x - endPoint.x) / 8;
+        segmentList.push(new Segment([startPoint.x, startPoint.y], [endPoint.x, endPoint.y], 1));
+        var minOffsetAmount = startPoint.x < endPoint.x
+            ? (endPoint.x - startPoint.x) / 8
+            : (startPoint.x - endPoint.x) / 8;
         var offsetAmount = Math.min(minOffsetAmount, this.maximumOffset); // the maximum amount to offset a lightning vertex.
         var maxLevel = Math.floor(Math.min(this.maxSegmentationLevel, 10 + endPoint.x / 100));
         for (var i = 0; i < maxLevel; i++) {

@@ -106,7 +106,7 @@ class Lightning {
             }
 
             this.clearFrame();
-            this.generateStrike(this.currentEndPoint);
+            this.generateStrike(this.startPoint, this.currentEndPoint);
 
             setTimeout(() => {
                 this.regenerate();
@@ -175,14 +175,14 @@ class Lightning {
         this.canvasContext.stroke();
     }
 
-    private generateStrike(endPoint: Point) {
+    private generateStrike(startPoint: Point, endPoint: Point) {
         let segmentList = [];
 
-        segmentList.push(new Segment([this.startPoint.x, this.startPoint.y], [endPoint.x, endPoint.y], 1));
+        segmentList.push(new Segment([startPoint.x, startPoint.y], [endPoint.x, endPoint.y], 1));
 
-        const minOffsetAmount = this.startPoint.x < endPoint.x
-            ? (endPoint.x - this.startPoint.x) / 8
-            : (this.startPoint.x - endPoint.x) / 8;
+        const minOffsetAmount = startPoint.x < endPoint.x
+            ? (endPoint.x - startPoint.x) / 8
+            : (startPoint.x - endPoint.x) / 8;
         let offsetAmount = Math.min(minOffsetAmount, this.maximumOffset); // the maximum amount to offset a lightning vertex.
 
         const maxLevel = Math.floor(Math.min(this.maxSegmentationLevel, 10 + endPoint.x / 100));
