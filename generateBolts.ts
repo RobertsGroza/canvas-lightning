@@ -9,18 +9,19 @@ type LightningProps = {
     startPoint: Point,
     endPoint: Point,
     animationPhase?: LightingAnimationPhase,
-    frameDuration: number,
-    frameCountAppear: number,
+    frameDuration?: number,
+    frameCountAppear?: number,
     frameCountFlicker?: number, // If frame count is not stated then it flickers infinitely
-    frameCountHide: number,
-    branchMaxLengthScale: number,
-    maxSegmentationLevel: number,
-    maximumOffset: number,
+    frameCountHide?: number,
+    branchMaxLengthScale?: number,
+    maxSegmentationLevel?: number,
+    maximumOffset?: number,
     showEndpoints?: boolean,
-    strokeColor: string,
-    fillColor: string,
+    strokeColor?: string,
+    fillColor?: string,
     playAllPhasesConsecutively?: boolean; // If true then play all animations consecutively (False by default)
-    branchConcentration: number;
+    branchConcentration?: number;
+    offsetCoefficient?: number;
 };
 
 class Segment {
@@ -64,6 +65,7 @@ class Lightning {
     private frameCountHide: number;
     private frameCountFlicker: number;
     private maximumOffset: number;
+    private offsetCoefficient: number;
     private showEndpoints: boolean;
     private strokeColor: string;
     private branchConcentration: number;
@@ -87,13 +89,14 @@ class Lightning {
         this.endPoint = props.endPoint;
         this.playAllPhasesConsecutively = props.playAllPhasesConsecutively ?? true;
         this.phase = props.animationPhase ?? "flicker";
-        this.frameDuration = props.frameDuration ?? 50;
+        this.frameDuration = props.frameDuration ?? 80;
         this.frameCountAppear = props.frameCountAppear ?? 30;
         this.frameCountHide = props.frameCountHide ?? 30;
         this.frameCountFlicker = props.frameCountFlicker;
         this.branchMaxLengthScale = props.branchMaxLengthScale ?? 0.7;
-        this.maxSegmentationLevel = props.maxSegmentationLevel ?? 8;
+        this.maxSegmentationLevel = props.maxSegmentationLevel ?? 10;
         this.maximumOffset = props.maximumOffset ?? 100;
+        this.offsetCoefficient = props.offsetCoefficient ?? 6;
         this.showEndpoints = props.showEndpoints;
         this.strokeColor = props.strokeColor ?? "#ffff00";
         this.branchConcentration = props.branchConcentration ?? 2;
@@ -105,6 +108,7 @@ class Lightning {
             if (!this.frameCountFlicker) {
                 this.frameCountFlicker = 30;
             }
+            this.phase = "appear";
             this.lightningAppearAnimation();
         } else if (this.phase === "appear") {
             this.lightningAppearAnimation();
@@ -122,6 +126,7 @@ class Lightning {
                 if (this.frameCountAppear && this.appearFrameNumber === this.frameCountAppear) {
                     clearInterval(this.appearInterval);
                     if (this.playAllPhasesConsecutively) {
+                        this.phase = "flicker";
                         this.lightningFlickerAnimation();
                     }
                 }
@@ -149,6 +154,7 @@ class Lightning {
                if (this.frameCountFlicker && this.flickerFrameNumber === this.frameCountFlicker) {
                    clearInterval(this.flickerInterval);
                    if (this.playAllPhasesConsecutively) {
+                       this.phase = "hide";
                        this.lightningHideAnimation();
                    }
                }
@@ -227,17 +233,46 @@ class Lightning {
 
     /* Draw lightning in canvas */
     private drawToCanvas(startPoint: Point, endPoint: Point, level: number): void {
-        if (level === 1) {
-            this.canvasContext.globalAlpha = 0.6
-        } else {
-            this.canvasContext.globalAlpha = 1 - level / 4
-        }
 
         this.canvasContext.beginPath();
+        this.canvasContext.lineJoin = "round";
+        this.canvasContext.lineCap = "round";
+        this.canvasContext.globalCompositeOperation = "lighter";
         this.canvasContext.strokeStyle = this.strokeColor;
+
         this.canvasContext.moveTo(startPoint.x, startPoint.y);
-        this.canvasContext.lineTo(endPoint.x, endPoint.y);
-        this.canvasContext.stroke();
+
+        if (level === 1) {
+            if (
+                this.phase === "flicker" ||
+                (
+                    this.phase === "appear" &&
+                    this.getRandomArbitrary(0, 600) < this.currentEndPoint.y - this.startPoint.y
+                ) ||
+                (
+                    this.phase === "hide" &&
+                    this.getRandomArbitrary(0, 600) < this.endPoint.y - this.currentStartPoint.y
+                )
+            ) {
+                this.canvasContext.lineWidth = this.phase === "flicker" ? 18 : 14;
+                this.canvasContext.strokeStyle = `rgba(255,255,0,${this.phase === "flicker" ? .016 : .014})`;
+                this.canvasContext.moveTo(startPoint.x, startPoint.y);
+                this.canvasContext.lineTo(endPoint.x, endPoint.y);
+                this.canvasContext.stroke();
+            }
+
+            this.canvasContext.lineWidth = 2;
+            this.canvasContext.strokeStyle = this.strokeColor;
+            this.canvasContext.moveTo(startPoint.x, startPoint.y);
+            this.canvasContext.lineTo(endPoint.x, endPoint.y);
+            this.canvasContext.stroke();
+        } else {
+            this.canvasContext.lineWidth = 1;
+            this.canvasContext.moveTo(startPoint.x, startPoint.y);
+            this.canvasContext.lineTo(endPoint.x, endPoint.y);
+            this.canvasContext.stroke();
+        }
+
         this.canvasContext.closePath();
     }
 
@@ -251,8 +286,8 @@ class Lightning {
         segmentList.push(new Segment([startPoint.x, startPoint.y], [endPoint.x, endPoint.y], 1));
 
         const minOffsetAmount = startPoint.x < endPoint.x
-            ? (endPoint.x - startPoint.x) / 8
-            : (startPoint.x - endPoint.x) / 8;
+            ? (endPoint.x - startPoint.x) / this.offsetCoefficient
+            : (startPoint.x - endPoint.x) / this.offsetCoefficient
         let offsetAmount = Math.min(minOffsetAmount, this.maximumOffset); // the maximum amount to offset a lightning vertex.
 
         const maxLevel = Math.floor(Math.min(this.maxSegmentationLevel, 10 + endPoint.x / 100));
