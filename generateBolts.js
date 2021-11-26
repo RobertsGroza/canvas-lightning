@@ -17,7 +17,7 @@ var Segment = /** @class */ (function () {
 }());
 var Lightning = /** @class */ (function () {
     function Lightning(props) {
-        var _a, _b;
+        var _a, _b, _c;
         /* Phase of lightning animation */
         this.phase = "appear";
         this.canvasContext = props.canvasContext;
@@ -25,10 +25,11 @@ var Lightning = /** @class */ (function () {
         this.currentStartPoint = props.startPoint;
         this.currentEndPoint = props.startPoint;
         this.endPoint = props.endPoint;
+        this.playAllPhasesConsecutively = (_a = props.playAllPhasesConsecutively) !== null && _a !== void 0 ? _a : false;
         this.phase = props.animationPhase;
         this.frameDuration = props.frameDuration;
-        this.frameCountAppear = (_a = props.frameCountAppear) !== null && _a !== void 0 ? _a : 30;
-        this.frameCountHide = (_b = props.frameCountHide) !== null && _b !== void 0 ? _b : 30;
+        this.frameCountAppear = (_b = props.frameCountAppear) !== null && _b !== void 0 ? _b : 30;
+        this.frameCountHide = (_c = props.frameCountHide) !== null && _c !== void 0 ? _c : 30;
         this.frameCountFlicker = props.frameCountFlicker;
         this.branchMaxLengthScale = props.branchMaxLengthScale;
         this.maxSegmentationLevel = props.maxSegmentationLevel;
@@ -39,8 +40,13 @@ var Lightning = /** @class */ (function () {
         this.clearFrameAlpha = props.clearFrameAlpha;
     }
     Lightning.prototype.playLightningAnimation = function () {
-        clearInterval(this.flickerInterval);
-        if (this.phase === "appear") {
+        if (this.playAllPhasesConsecutively) {
+            if (!this.frameCountFlicker) {
+                this.frameCountFlicker = 30;
+            }
+            this.lightningAppearAnimation();
+        }
+        else if (this.phase === "appear") {
             this.lightningAppearAnimation();
         }
         else if (this.phase === "hide") {
@@ -52,63 +58,67 @@ var Lightning = /** @class */ (function () {
     };
     Lightning.prototype.lightningAppearAnimation = function () {
         var _this = this;
+        this.appearFrameNumber = 1;
         requestAnimationFrame(function () {
-            _this.currentEndPoint = {
-                x: _this.currentEndPoint.x + (_this.endPoint.x - _this.startPoint.x) / _this.frameCountAppear,
-                y: _this.currentEndPoint.y + (_this.endPoint.y - _this.startPoint.y) / _this.frameCountAppear
-            };
-            if (_this.startPoint.y < _this.endPoint.y && _this.currentEndPoint.y > _this.endPoint.y && _this.currentEndPoint.x > _this.endPoint.x ||
-                _this.endPoint.y < _this.startPoint.y && _this.currentEndPoint.y < _this.endPoint.y && _this.currentEndPoint.x < _this.endPoint.x) {
-                _this.currentEndPoint = _this.endPoint;
-                return;
-            }
-            _this.clearFrame();
-            _this.generateStrike(_this.startPoint, _this.currentEndPoint);
-            setTimeout(function () {
-                _this.lightningAppearAnimation();
+            _this.appearInterval = setInterval(function () {
+                if (_this.frameCountAppear && _this.appearFrameNumber === _this.frameCountAppear) {
+                    clearInterval(_this.appearInterval);
+                    if (_this.playAllPhasesConsecutively) {
+                        _this.lightningFlickerAnimation();
+                    }
+                }
+                _this.currentEndPoint = {
+                    x: _this.currentEndPoint.x + (_this.endPoint.x - _this.startPoint.x) / _this.frameCountAppear,
+                    y: _this.currentEndPoint.y + (_this.endPoint.y - _this.startPoint.y) / _this.frameCountAppear
+                };
+                _this.clearFrame();
+                _this.generateStrike(_this.startPoint, _this.currentEndPoint);
+                _this.appearFrameNumber++;
+                if (_this.showEndpoints) {
+                    _this.drawEndpoints();
+                }
             }, _this.frameDuration);
-            if (_this.showEndpoints) {
-                _this.drawEndpoints();
-            }
         });
     };
     Lightning.prototype.lightningFlickerAnimation = function () {
         var _this = this;
         this.flickerFrameNumber = 1;
         requestAnimationFrame(function () {
-            if (_this.showEndpoints) {
-                _this.drawEndpoints();
-            }
             _this.flickerInterval = setInterval(function () {
+                if (_this.frameCountFlicker && _this.flickerFrameNumber === _this.frameCountFlicker) {
+                    clearInterval(_this.flickerInterval);
+                    if (_this.playAllPhasesConsecutively) {
+                        _this.lightningHideAnimation();
+                    }
+                }
                 _this.clearFrame();
                 _this.generateStrike(_this.startPoint, _this.endPoint);
-                if (_this.frameCountFlicker && _this.flickerFrameNumber > _this.frameCountFlicker) {
-                    clearInterval(_this.flickerInterval);
-                }
                 _this.flickerFrameNumber++;
+                if (_this.showEndpoints) {
+                    _this.drawEndpoints();
+                }
             }, _this.frameDuration);
         });
     };
     Lightning.prototype.lightningHideAnimation = function () {
         var _this = this;
+        this.hideFrameNumber = 1;
         requestAnimationFrame(function () {
-            _this.currentStartPoint = {
-                x: _this.currentStartPoint.x + (_this.endPoint.x - _this.startPoint.x) / _this.frameCountHide,
-                y: _this.currentStartPoint.y + (_this.endPoint.y - _this.startPoint.y) / _this.frameCountHide
-            };
-            if (_this.startPoint.y < _this.endPoint.y && _this.currentStartPoint.y > _this.endPoint.y && _this.currentStartPoint.x > _this.endPoint.x ||
-                _this.endPoint.y < _this.startPoint.y && _this.currentStartPoint.y < _this.endPoint.y && _this.currentStartPoint.x < _this.endPoint.x) {
-                _this.currentStartPoint = _this.endPoint;
-                return;
-            }
-            _this.clearFrame();
-            _this.generateStrike(_this.currentStartPoint, _this.endPoint);
-            setTimeout(function () {
-                _this.lightningHideAnimation();
+            _this.hideInterval = setInterval(function () {
+                if (_this.frameCountHide && _this.hideFrameNumber === _this.frameCountHide) {
+                    clearInterval(_this.hideInterval);
+                }
+                _this.currentStartPoint = {
+                    x: _this.currentStartPoint.x + (_this.endPoint.x - _this.startPoint.x) / _this.frameCountHide,
+                    y: _this.currentStartPoint.y + (_this.endPoint.y - _this.startPoint.y) / _this.frameCountHide
+                };
+                _this.clearFrame();
+                _this.generateStrike(_this.currentStartPoint, _this.endPoint);
+                _this.hideFrameNumber++;
+                if (_this.showEndpoints) {
+                    _this.drawEndpoints();
+                }
             }, _this.frameDuration);
-            if (_this.showEndpoints) {
-                _this.drawEndpoints();
-            }
         });
     };
     Lightning.prototype.drawEndpoints = function () {

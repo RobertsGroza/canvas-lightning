@@ -16,6 +16,8 @@
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
+    const phase = document.getElementById("phase").value;
+
     /* Animation stuff */
     lightning = new Lightning(
         {
@@ -28,7 +30,8 @@
             x: parseInt(document.getElementById("end-point-x").value, 10),
             y: parseInt(document.getElementById("end-point-y").value, 10)
           },
-          animationPhase: document.getElementById("phase").value,
+          animationPhase: phase !== "play-all" ? phase : "appear",
+          playAllPhasesConsecutively: phase === "play-all",
           frameDuration: parseInt(document.getElementById("frame-duration").value, 10),
           frameCountAppear: parseInt(document.getElementById("frame-count-appear").value, 10),
           frameCountHide: parseInt(document.getElementById("frame-count-hide").value, 10),
@@ -109,6 +112,7 @@
     <div class="form-group">
       <label for="phase">Phase:</label>
       <select name="phase" id="phase">
+        <option value="play-all">Play all</option>
         <option value="appear">Appear</option>
         <option value="flicker">Flicker</option>
         <option value="hide">Hide</option>

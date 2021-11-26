@@ -8,7 +8,7 @@ type LightningProps = {
     canvasContext: CanvasRenderingContext2D,
     startPoint: Point,
     endPoint: Point,
-    animationPhase: LightingAnimationPhase,
+    animationPhase?: LightingAnimationPhase,
     frameDuration: number,
     frameCountAppear: number,
     frameCountFlicker?: number, // If frame count is not stated then it flickers infinitely
@@ -20,6 +20,7 @@ type LightningProps = {
     strokeColor: string,
     fillColor: string,
     clearFrameAlpha: number;
+    playAllPhasesConsecutively?: boolean; // If true then play all animations consecutively (False by default)
 };
 
 class Segment {
@@ -57,6 +58,7 @@ class Lightning {
     private maxSegmentationLevel: number;
     /* Phase of lightning animation */
     private phase: LightingAnimationPhase = "appear";
+    private playAllPhasesConsecutively: boolean;
     private frameDuration: number;
     private frameCountAppear: number;
     private frameCountHide: number;
@@ -65,8 +67,15 @@ class Lightning {
     private showEndpoints: boolean;
     private strokeColor: string;
     private fillColor: string;
+
+    /* Frame related stuff */
     private flickerInterval: number;
     private flickerFrameNumber: number;
+    private appearInterval: number;
+    private appearFrameNumber: number;
+    private hideInterval: number;
+    private hideFrameNumber: number;
+
     /*
         ClearFrameAlpha affects artifacts:
         * if alpha is small f.e. 0.1 then more old lightnings is visible
@@ -74,12 +83,16 @@ class Lightning {
     */
     private clearFrameAlpha: number;
 
+    /* Previous frame segments */
+    private previousFrameSegments: Segment[];
+
     constructor(props: LightningProps) {
         this.canvasContext = props.canvasContext;
         this.startPoint = props.startPoint;
         this.currentStartPoint = props.startPoint;
         this.currentEndPoint = props.startPoint;
         this.endPoint = props.endPoint;
+        this.playAllPhasesConsecutively = props.playAllPhasesConsecutively ?? false;
         this.phase = props.animationPhase;
         this.frameDuration = props.frameDuration;
         this.frameCountAppear = props.frameCountAppear ?? 30;
@@ -95,9 +108,12 @@ class Lightning {
     }
 
     public playLightningAnimation(): void {
-        clearInterval(this.flickerInterval);
-
-        if (this.phase === "appear") {
+        if (this.playAllPhasesConsecutively) {
+            if (!this.frameCountFlicker) {
+                this.frameCountFlicker = 30;
+            }
+            this.lightningAppearAnimation();
+        } else if (this.phase === "appear") {
             this.lightningAppearAnimation();
         } else if (this.phase === "hide") {
             this.lightningHideAnimation();
@@ -107,78 +123,75 @@ class Lightning {
     }
 
     public lightningAppearAnimation(): void {
+        this.appearFrameNumber = 1;
         requestAnimationFrame(() => {
-            this.currentEndPoint = {
-                x: this.currentEndPoint.x + (this.endPoint.x - this.startPoint.x) / this.frameCountAppear,
-                y: this.currentEndPoint.y + (this.endPoint.y - this.startPoint.y) / this.frameCountAppear,
-            };
+            this.appearInterval = setInterval(() => {
+                if (this.frameCountAppear && this.appearFrameNumber === this.frameCountAppear) {
+                    clearInterval(this.appearInterval);
+                    if (this.playAllPhasesConsecutively) {
+                        this.lightningFlickerAnimation();
+                    }
+                }
 
-            if (
-                this.startPoint.y < this.endPoint.y && this.currentEndPoint.y > this.endPoint.y && this.currentEndPoint.x > this.endPoint.x ||
-                this.endPoint.y < this.startPoint.y && this.currentEndPoint.y < this.endPoint.y && this.currentEndPoint.x < this.endPoint.x
-            ) {
-                this.currentEndPoint = this.endPoint;
-                return;
-            }
+                this.currentEndPoint = {
+                    x: this.currentEndPoint.x + (this.endPoint.x - this.startPoint.x) / this.frameCountAppear,
+                    y: this.currentEndPoint.y + (this.endPoint.y - this.startPoint.y) / this.frameCountAppear,
+                };
 
-            this.clearFrame();
-            this.generateStrike(this.startPoint, this.currentEndPoint);
+                this.clearFrame();
+                this.generateStrike(this.startPoint, this.currentEndPoint);
+                this.appearFrameNumber++;
 
-            setTimeout(() => {
-                this.lightningAppearAnimation();
+                if (this.showEndpoints) {
+                    this.drawEndpoints();
+                }
             }, this.frameDuration);
-
-            if (this.showEndpoints) {
-                this.drawEndpoints();
-            }
         })
     }
 
     public lightningFlickerAnimation(): void {
         this.flickerFrameNumber = 1;
         requestAnimationFrame(() => {
-            if (this.showEndpoints) {
-                this.drawEndpoints();
-            }
-
            this.flickerInterval = setInterval(() => {
-               this.clearFrame();
-               this.generateStrike(this.startPoint, this.endPoint);
-
-               if (this.frameCountFlicker && this.flickerFrameNumber > this.frameCountFlicker) {
+               if (this.frameCountFlicker && this.flickerFrameNumber === this.frameCountFlicker) {
                    clearInterval(this.flickerInterval);
+                   if (this.playAllPhasesConsecutively) {
+                       this.lightningHideAnimation();
+                   }
                }
 
+               this.clearFrame();
+               this.generateStrike(this.startPoint, this.endPoint);
                this.flickerFrameNumber++;
+
+               if (this.showEndpoints) {
+                   this.drawEndpoints();
+               }
            }, this.frameDuration);
         });
     }
 
     public lightningHideAnimation(): void {
+        this.hideFrameNumber = 1;
         requestAnimationFrame(() => {
-            this.currentStartPoint = {
-                x: this.currentStartPoint.x + (this.endPoint.x - this.startPoint.x) / this.frameCountHide,
-                y: this.currentStartPoint.y + (this.endPoint.y - this.startPoint.y) / this.frameCountHide,
-            };
+            this.hideInterval = setInterval(() => {
+                if (this.frameCountHide && this.hideFrameNumber === this.frameCountHide) {
+                    clearInterval(this.hideInterval);
+                }
 
-            if (
-                this.startPoint.y < this.endPoint.y && this.currentStartPoint.y > this.endPoint.y && this.currentStartPoint.x > this.endPoint.x ||
-                this.endPoint.y < this.startPoint.y && this.currentStartPoint.y < this.endPoint.y && this.currentStartPoint.x < this.endPoint.x
-            ) {
-                this.currentStartPoint = this.endPoint;
-                return;
-            }
+                this.currentStartPoint = {
+                    x: this.currentStartPoint.x + (this.endPoint.x - this.startPoint.x) / this.frameCountHide,
+                    y: this.currentStartPoint.y + (this.endPoint.y - this.startPoint.y) / this.frameCountHide,
+                };
 
-            this.clearFrame();
-            this.generateStrike(this.currentStartPoint, this.endPoint);
+                this.clearFrame();
+                this.generateStrike(this.currentStartPoint, this.endPoint);
+                this.hideFrameNumber++;
 
-            setTimeout(() => {
-                this.lightningHideAnimation();
+                if (this.showEndpoints) {
+                    this.drawEndpoints();
+                }
             }, this.frameDuration);
-
-            if (this.showEndpoints) {
-                this.drawEndpoints();
-            }
         })
     }
 
