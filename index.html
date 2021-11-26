@@ -13,12 +13,40 @@
   function runAnimation() {
     /* Canvas stuff */
     const canvas = document.querySelector('canvas');
+    canvas.style.backgroundColor = document.getElementById("background-color").value;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
     const phase = document.getElementById("phase").value;
 
     /* Animation stuff */
+    // lightning = new Lightning(
+    //     {
+    //       canvasContext: ctx,
+    //       startPoint: {
+    //         x: parseInt(document.getElementById("start-point-x").value, 10),
+    //         y: parseInt(document.getElementById("start-point-y").value, 10)
+    //       },
+    //       endPoint: {
+    //         x: parseInt(document.getElementById("end-point-x").value, 10),
+    //         y: parseInt(document.getElementById("end-point-y").value, 10)
+    //       },
+    //       animationPhase: phase !== "play-all" ? phase : "appear",
+    //       playAllPhasesConsecutively: phase === "play-all",
+    //       frameDuration: parseInt(document.getElementById("frame-duration").value, 10),
+    //       frameCountAppear: parseInt(document.getElementById("frame-count-appear").value, 10),
+    //       frameCountHide: parseInt(document.getElementById("frame-count-hide").value, 10),
+    //       frameCountFlicker: parseInt(document.getElementById("frame-count-flicker").value, 10),
+    //       branchMaxLengthScale: parseFloat(document.getElementById("branch-max-length").value),
+    //       maxSegmentationLevel: parseInt(document.getElementById("max-segmentation-level").value, 10),
+    //       maximumOffset: parseInt(document.getElementById("maximum-offset").value, 10),
+    //       showEndpoints: document.getElementById("show-endpoints").checked,
+    //       strokeColor: document.getElementById("lightning-color").value,
+    //       branchConcentration: parseInt(document.getElementById("branch-concentration").value, 10),
+    //     }
+    // );
+    //
+
     lightning = new Lightning(
         {
           canvasContext: ctx,
@@ -30,19 +58,6 @@
             x: parseInt(document.getElementById("end-point-x").value, 10),
             y: parseInt(document.getElementById("end-point-y").value, 10)
           },
-          animationPhase: phase !== "play-all" ? phase : "appear",
-          playAllPhasesConsecutively: phase === "play-all",
-          frameDuration: parseInt(document.getElementById("frame-duration").value, 10),
-          frameCountAppear: parseInt(document.getElementById("frame-count-appear").value, 10),
-          frameCountHide: parseInt(document.getElementById("frame-count-hide").value, 10),
-          frameCountFlicker: parseInt(document.getElementById("frame-count-flicker").value, 10),
-          branchMaxLengthScale: parseFloat(document.getElementById("branch-max-length").value),
-          maxSegmentationLevel: parseInt(document.getElementById("max-segmentation-level").value, 10),
-          maximumOffset: parseInt(document.getElementById("maximum-offset").value, 10),
-          showEndpoints: document.getElementById("show-endpoints").checked,
-          strokeColor: document.getElementById("lightning-color").value,
-          fillColor: document.getElementById("background-color").value,
-          clearFrameAlpha: document.getElementById("clear-frame-alpha").value,
         }
     );
 
@@ -107,7 +122,7 @@
     </div>
     <div class="form-group">
       <label for="lightning-color">Lightning color</label>
-      <input type="color" id="lightning-color" name="lightning-color" value="#00ffff">
+      <input type="color" id="lightning-color" name="lightning-color" value="#ffff00">
     </div>
     <div class="form-group">
       <label for="phase">Phase:</label>
@@ -132,11 +147,7 @@
     </div>
     <div class="form-group">
       <label for="frame-duration">Frame duration (ms) :</label>
-      <input type="number" id="frame-duration" name="frame-duration" min="1" max="3000" value="50">
-    </div>
-    <div class="form-group">
-      <label for="clear-frame-alpha">Clear frame alpha</label>
-      <input step=".1" type="number" id="clear-frame-alpha" name="clear-frame-alpha" min="0" max="1" value="0.7">
+      <input type="number" id="frame-duration" name="frame-duration" min="1" max="3000" value="100">
     </div>
     <div class="form-group">
       <label for="branch-max-length">Branch max length relation to strike (0 - 1):</label>
@@ -165,6 +176,10 @@
     <div class="form-group">
       <label for="maximum-offset">Maximum offset (max 200)</label>
       <input type="number" id="maximum-offset" name="maximum-offset" min="1" max="200" value="100">
+    </div>
+    <div class="form-group">
+      <label for="branch-concentration">Branch concentration (smaller number - bigger concentration)</label>
+      <input type="number" id="branch-concentration" name="branch-concentration" min="1" max="20" value="2">
     </div>
     <div class="form-group">
       <label for="show-endpoints">Show endpoints</label>

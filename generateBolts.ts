@@ -19,8 +19,8 @@ type LightningProps = {
     showEndpoints?: boolean,
     strokeColor: string,
     fillColor: string,
-    clearFrameAlpha: number;
     playAllPhasesConsecutively?: boolean; // If true then play all animations consecutively (False by default)
+    branchConcentration: number;
 };
 
 class Segment {
@@ -66,7 +66,7 @@ class Lightning {
     private maximumOffset: number;
     private showEndpoints: boolean;
     private strokeColor: string;
-    private fillColor: string;
+    private branchConcentration: number;
 
     /* Frame related stuff */
     private flickerInterval: number;
@@ -75,13 +75,6 @@ class Lightning {
     private appearFrameNumber: number;
     private hideInterval: number;
     private hideFrameNumber: number;
-
-    /*
-        ClearFrameAlpha affects artifacts:
-        * if alpha is small f.e. 0.1 then more old lightnings is visible
-        * if alpha 1 then only current lightning is visible
-    */
-    private clearFrameAlpha: number;
 
     /* Previous frame segments */
     private previousFrameSegments: Segment[];
@@ -92,19 +85,19 @@ class Lightning {
         this.currentStartPoint = props.startPoint;
         this.currentEndPoint = props.startPoint;
         this.endPoint = props.endPoint;
-        this.playAllPhasesConsecutively = props.playAllPhasesConsecutively ?? false;
-        this.phase = props.animationPhase;
-        this.frameDuration = props.frameDuration;
+        this.playAllPhasesConsecutively = props.playAllPhasesConsecutively ?? true;
+        this.phase = props.animationPhase ?? "flicker";
+        this.frameDuration = props.frameDuration ?? 50;
         this.frameCountAppear = props.frameCountAppear ?? 30;
         this.frameCountHide = props.frameCountHide ?? 30;
         this.frameCountFlicker = props.frameCountFlicker;
-        this.branchMaxLengthScale = props.branchMaxLengthScale;
-        this.maxSegmentationLevel = props.maxSegmentationLevel;
-        this.maximumOffset = props.maximumOffset;
+        this.branchMaxLengthScale = props.branchMaxLengthScale ?? 0.7;
+        this.maxSegmentationLevel = props.maxSegmentationLevel ?? 8;
+        this.maximumOffset = props.maximumOffset ?? 100;
         this.showEndpoints = props.showEndpoints;
-        this.strokeColor = props.strokeColor;
-        this.fillColor = props.fillColor;
-        this.clearFrameAlpha = props.clearFrameAlpha;
+        this.strokeColor = props.strokeColor ?? "#ffff00";
+        this.branchConcentration = props.branchConcentration ?? 2;
+        this.previousFrameSegments = [];
     }
 
     public playLightningAnimation(): void {
@@ -239,23 +232,17 @@ class Lightning {
         } else {
             this.canvasContext.globalAlpha = 1 - level / 4
         }
+
         this.canvasContext.beginPath();
         this.canvasContext.strokeStyle = this.strokeColor;
-        this.canvasContext.fillStyle = this.fillColor;
         this.canvasContext.moveTo(startPoint.x, startPoint.y);
         this.canvasContext.lineTo(endPoint.x, endPoint.y);
-        this.canvasContext.closePath();
         this.canvasContext.stroke();
+        this.canvasContext.closePath();
     }
 
     private clearFrame(): void {
-        // For transparent canvas uncomment this
-        // this.canvasContext.clearRect(0, 0, this.canvasContext.canvas.clientHeight, this.canvasContext.canvas.clientWidth);
-        this.canvasContext.beginPath();
-        this.canvasContext.fillStyle = this.fillColor;
-        this.canvasContext.globalAlpha = this.clearFrameAlpha;
-        this.canvasContext.fillRect(0, 0, this.canvasContext.canvas.clientWidth, this.canvasContext.canvas.clientHeight,);
-        this.canvasContext.stroke();
+        this.canvasContext.clearRect(0, 0, this.canvasContext.canvas.clientHeight, this.canvasContext.canvas.clientWidth);
     }
 
     private generateStrike(startPoint: Point, endPoint: Point) {
@@ -299,10 +286,11 @@ class Lightning {
                 newList.push(new Segment([segment.startPoint.x, segment.startPoint.y], [midPoint.x, midPoint.y], segment.level))
                 newList.push(new Segment([midPoint.x, midPoint.y], [segment.endPoint.x, segment.endPoint.y], segment.level))
 
-                if (this.getRandomArbitrary(0, 2) < 1 && i % 2 == 0) {
+                if (this.getRandomArbitrary(0, 2) < 1 && i % this.branchConcentration == 0) {
                     const distance = Math.sqrt(
                         Math.pow(midPoint.x - segment.startPoint.x, 2) +
-                        Math.pow(midPoint.y - segment.startPoint.y, 2))
+                        Math.pow(midPoint.y - segment.startPoint.y, 2)
+                    )
 
                     let splitEnd = {
                         x: segment.endPoint.x,
@@ -315,7 +303,6 @@ class Lightning {
                         branchAngle = this.getRandomArbitrary(0.2, 0.8)
                     }
 
-
                     splitEnd = this.rotateAroundDistance(splitEnd, midPoint, branchAngle, this.branchMaxLengthScale * distance)
 
                     newList.push(new Segment([midPoint.x, midPoint.y], [splitEnd.x, splitEnd.y], segment.level + 1));
@@ -325,6 +312,9 @@ class Lightning {
             offsetAmount /= 2; // Each subsequent generation offsets at max half as much as the generation before.
             segmentList = newList;
         }
+
+        // Save segments
+        this.previousFrameSegments = segmentList;
 
         // Draw segments
         segmentList.forEach(s => {
