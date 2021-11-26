@@ -10,7 +10,9 @@ type LightningProps = {
     endPoint: Point,
     animationPhase: LightingAnimationPhase,
     frameDuration: number,
-    frameCount: number,
+    frameCountAppear: number,
+    frameCountFlicker?: number, // If frame count is not stated then it flickers infinitely
+    frameCountHide: number,
     branchMaxLengthScale: number,
     maxSegmentationLevel: number,
     maximumOffset: number,
@@ -46,7 +48,8 @@ class Lightning {
     private canvasContext: CanvasRenderingContext2D;
     private startPoint: Point;
     private endPoint: Point;
-    /* Lightnings current endpoint in animation (During appear animation grows)  */
+    /* Lightnings current start point & endpoint in animation (used during appear / hide animation)  */
+    private currentStartPoint: Point;
     private currentEndPoint: Point;
     /* Maximum branch length in relation to lightning length */
     private branchMaxLengthScale;
@@ -55,13 +58,15 @@ class Lightning {
     /* Phase of lightning animation */
     private phase: LightingAnimationPhase = "appear";
     private frameDuration: number;
-    private frameCount: number;
-    private stepX: number;
-    private stepY: number;
+    private frameCountAppear: number;
+    private frameCountHide: number;
+    private frameCountFlicker: number;
     private maximumOffset: number;
     private showEndpoints: boolean;
     private strokeColor: string;
     private fillColor: string;
+    private flickerInterval: number;
+    private flickerFrameNumber: number;
     /*
         ClearFrameAlpha affects artifacts:
         * if alpha is small f.e. 0.1 then more old lightnings is visible
@@ -72,11 +77,14 @@ class Lightning {
     constructor(props: LightningProps) {
         this.canvasContext = props.canvasContext;
         this.startPoint = props.startPoint;
+        this.currentStartPoint = props.startPoint;
         this.currentEndPoint = props.startPoint;
         this.endPoint = props.endPoint;
         this.phase = props.animationPhase;
         this.frameDuration = props.frameDuration;
-        this.frameCount = props.frameCount;
+        this.frameCountAppear = props.frameCountAppear ?? 30;
+        this.frameCountHide = props.frameCountHide ?? 30;
+        this.frameCountFlicker = props.frameCountFlicker;
         this.branchMaxLengthScale = props.branchMaxLengthScale;
         this.maxSegmentationLevel = props.maxSegmentationLevel;
         this.maximumOffset = props.maximumOffset;
@@ -84,17 +92,25 @@ class Lightning {
         this.strokeColor = props.strokeColor;
         this.fillColor = props.fillColor;
         this.clearFrameAlpha = props.clearFrameAlpha;
-
-        /* Calculate step count depending on frame count */
-        this.stepX = (this.endPoint.x - this.startPoint.x) / this.frameCount;
-        this.stepY = (this.endPoint.y - this.startPoint.y) / this.frameCount;
     }
 
-    public regenerate(): void {
+    public playLightningAnimation(): void {
+        clearInterval(this.flickerInterval);
+
+        if (this.phase === "appear") {
+            this.lightningAppearAnimation();
+        } else if (this.phase === "hide") {
+            this.lightningHideAnimation();
+        } else {
+            this.lightningFlickerAnimation();
+        }
+    }
+
+    public lightningAppearAnimation(): void {
         requestAnimationFrame(() => {
             this.currentEndPoint = {
-                x: this.currentEndPoint.x + this.stepX,
-                y: this.currentEndPoint.y + this.stepY,
+                x: this.currentEndPoint.x + (this.endPoint.x - this.startPoint.x) / this.frameCountAppear,
+                y: this.currentEndPoint.y + (this.endPoint.y - this.startPoint.y) / this.frameCountAppear,
             };
 
             if (
@@ -109,7 +125,55 @@ class Lightning {
             this.generateStrike(this.startPoint, this.currentEndPoint);
 
             setTimeout(() => {
-                this.regenerate();
+                this.lightningAppearAnimation();
+            }, this.frameDuration);
+
+            if (this.showEndpoints) {
+                this.drawEndpoints();
+            }
+        })
+    }
+
+    public lightningFlickerAnimation(): void {
+        this.flickerFrameNumber = 1;
+        requestAnimationFrame(() => {
+            if (this.showEndpoints) {
+                this.drawEndpoints();
+            }
+
+           this.flickerInterval = setInterval(() => {
+               this.clearFrame();
+               this.generateStrike(this.startPoint, this.endPoint);
+
+               if (this.frameCountFlicker && this.flickerFrameNumber > this.frameCountFlicker) {
+                   clearInterval(this.flickerInterval);
+               }
+
+               this.flickerFrameNumber++;
+           }, this.frameDuration);
+        });
+    }
+
+    public lightningHideAnimation(): void {
+        requestAnimationFrame(() => {
+            this.currentStartPoint = {
+                x: this.currentStartPoint.x + (this.endPoint.x - this.startPoint.x) / this.frameCountHide,
+                y: this.currentStartPoint.y + (this.endPoint.y - this.startPoint.y) / this.frameCountHide,
+            };
+
+            if (
+                this.startPoint.y < this.endPoint.y && this.currentStartPoint.y > this.endPoint.y && this.currentStartPoint.x > this.endPoint.x ||
+                this.endPoint.y < this.startPoint.y && this.currentStartPoint.y < this.endPoint.y && this.currentStartPoint.x < this.endPoint.x
+            ) {
+                this.currentStartPoint = this.endPoint;
+                return;
+            }
+
+            this.clearFrame();
+            this.generateStrike(this.currentStartPoint, this.endPoint);
+
+            setTimeout(() => {
+                this.lightningHideAnimation();
             }, this.frameDuration);
 
             if (this.showEndpoints) {
@@ -126,6 +190,10 @@ class Lightning {
         this.canvasContext.fillRect(this.startPoint.x, this.startPoint.y, 5, 5);
         this.canvasContext.fillRect(this.endPoint.x, this.endPoint.y, 5, 5);
         this.canvasContext.stroke();
+    }
+
+    public stopFlickering(): void {
+        clearInterval(this.flickerInterval);
     }
 
     /* Get middle point of the line */
@@ -168,6 +236,8 @@ class Lightning {
     }
 
     private clearFrame(): void {
+        // For transparent canvas uncomment this
+        // this.canvasContext.clearRect(0, 0, this.canvasContext.canvas.clientHeight, this.canvasContext.canvas.clientWidth);
         this.canvasContext.beginPath();
         this.canvasContext.fillStyle = this.fillColor;
         this.canvasContext.globalAlpha = this.clearFrameAlpha;

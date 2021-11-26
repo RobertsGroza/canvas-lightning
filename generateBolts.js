@@ -17,15 +17,19 @@ var Segment = /** @class */ (function () {
 }());
 var Lightning = /** @class */ (function () {
     function Lightning(props) {
+        var _a, _b;
         /* Phase of lightning animation */
         this.phase = "appear";
         this.canvasContext = props.canvasContext;
         this.startPoint = props.startPoint;
+        this.currentStartPoint = props.startPoint;
         this.currentEndPoint = props.startPoint;
         this.endPoint = props.endPoint;
         this.phase = props.animationPhase;
         this.frameDuration = props.frameDuration;
-        this.frameCount = props.frameCount;
+        this.frameCountAppear = (_a = props.frameCountAppear) !== null && _a !== void 0 ? _a : 30;
+        this.frameCountHide = (_b = props.frameCountHide) !== null && _b !== void 0 ? _b : 30;
+        this.frameCountFlicker = props.frameCountFlicker;
         this.branchMaxLengthScale = props.branchMaxLengthScale;
         this.maxSegmentationLevel = props.maxSegmentationLevel;
         this.maximumOffset = props.maximumOffset;
@@ -33,16 +37,25 @@ var Lightning = /** @class */ (function () {
         this.strokeColor = props.strokeColor;
         this.fillColor = props.fillColor;
         this.clearFrameAlpha = props.clearFrameAlpha;
-        /* Calculate step count depending on frame count */
-        this.stepX = (this.endPoint.x - this.startPoint.x) / this.frameCount;
-        this.stepY = (this.endPoint.y - this.startPoint.y) / this.frameCount;
     }
-    Lightning.prototype.regenerate = function () {
+    Lightning.prototype.playLightningAnimation = function () {
+        clearInterval(this.flickerInterval);
+        if (this.phase === "appear") {
+            this.lightningAppearAnimation();
+        }
+        else if (this.phase === "hide") {
+            this.lightningHideAnimation();
+        }
+        else {
+            this.lightningFlickerAnimation();
+        }
+    };
+    Lightning.prototype.lightningAppearAnimation = function () {
         var _this = this;
         requestAnimationFrame(function () {
             _this.currentEndPoint = {
-                x: _this.currentEndPoint.x + _this.stepX,
-                y: _this.currentEndPoint.y + _this.stepY
+                x: _this.currentEndPoint.x + (_this.endPoint.x - _this.startPoint.x) / _this.frameCountAppear,
+                y: _this.currentEndPoint.y + (_this.endPoint.y - _this.startPoint.y) / _this.frameCountAppear
             };
             if (_this.startPoint.y < _this.endPoint.y && _this.currentEndPoint.y > _this.endPoint.y && _this.currentEndPoint.x > _this.endPoint.x ||
                 _this.endPoint.y < _this.startPoint.y && _this.currentEndPoint.y < _this.endPoint.y && _this.currentEndPoint.x < _this.endPoint.x) {
@@ -52,7 +65,46 @@ var Lightning = /** @class */ (function () {
             _this.clearFrame();
             _this.generateStrike(_this.startPoint, _this.currentEndPoint);
             setTimeout(function () {
-                _this.regenerate();
+                _this.lightningAppearAnimation();
+            }, _this.frameDuration);
+            if (_this.showEndpoints) {
+                _this.drawEndpoints();
+            }
+        });
+    };
+    Lightning.prototype.lightningFlickerAnimation = function () {
+        var _this = this;
+        this.flickerFrameNumber = 1;
+        requestAnimationFrame(function () {
+            if (_this.showEndpoints) {
+                _this.drawEndpoints();
+            }
+            _this.flickerInterval = setInterval(function () {
+                _this.clearFrame();
+                _this.generateStrike(_this.startPoint, _this.endPoint);
+                if (_this.frameCountFlicker && _this.flickerFrameNumber > _this.frameCountFlicker) {
+                    clearInterval(_this.flickerInterval);
+                }
+                _this.flickerFrameNumber++;
+            }, _this.frameDuration);
+        });
+    };
+    Lightning.prototype.lightningHideAnimation = function () {
+        var _this = this;
+        requestAnimationFrame(function () {
+            _this.currentStartPoint = {
+                x: _this.currentStartPoint.x + (_this.endPoint.x - _this.startPoint.x) / _this.frameCountHide,
+                y: _this.currentStartPoint.y + (_this.endPoint.y - _this.startPoint.y) / _this.frameCountHide
+            };
+            if (_this.startPoint.y < _this.endPoint.y && _this.currentStartPoint.y > _this.endPoint.y && _this.currentStartPoint.x > _this.endPoint.x ||
+                _this.endPoint.y < _this.startPoint.y && _this.currentStartPoint.y < _this.endPoint.y && _this.currentStartPoint.x < _this.endPoint.x) {
+                _this.currentStartPoint = _this.endPoint;
+                return;
+            }
+            _this.clearFrame();
+            _this.generateStrike(_this.currentStartPoint, _this.endPoint);
+            setTimeout(function () {
+                _this.lightningHideAnimation();
             }, _this.frameDuration);
             if (_this.showEndpoints) {
                 _this.drawEndpoints();
@@ -67,6 +119,9 @@ var Lightning = /** @class */ (function () {
         this.canvasContext.fillRect(this.startPoint.x, this.startPoint.y, 5, 5);
         this.canvasContext.fillRect(this.endPoint.x, this.endPoint.y, 5, 5);
         this.canvasContext.stroke();
+    };
+    Lightning.prototype.stopFlickering = function () {
+        clearInterval(this.flickerInterval);
     };
     /* Get middle point of the line */
     Lightning.prototype.getMiddlePointOfLine = function (startPoint, endPoint) {
@@ -103,6 +158,8 @@ var Lightning = /** @class */ (function () {
         this.canvasContext.stroke();
     };
     Lightning.prototype.clearFrame = function () {
+        // For transparent canvas uncomment this
+        // this.canvasContext.clearRect(0, 0, this.canvasContext.canvas.clientHeight, this.canvasContext.canvas.clientWidth);
         this.canvasContext.beginPath();
         this.canvasContext.fillStyle = this.fillColor;
         this.canvasContext.globalAlpha = this.clearFrameAlpha;
