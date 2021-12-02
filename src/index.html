@@ -20,41 +20,41 @@
     const phase = document.getElementById("phase").value;
 
     /* Animation stuff */
-    // lightning = new Lightning(
-    //     {
-    //       canvasContext: ctx,
-    //       startPoint: {
-    //         x: parseInt(document.getElementById("start-point-x").value, 10),
-    //         y: parseInt(document.getElementById("start-point-y").value, 10)
-    //       },
-    //       endPoint: {
-    //         x: parseInt(document.getElementById("end-point-x").value, 10),
-    //         y: parseInt(document.getElementById("end-point-y").value, 10)
-    //       },
-    //       animationPhase: phase !== "play-all" ? phase : "appear",
-    //       playAllPhasesConsecutively: phase === "play-all",
-    //       frameDuration: parseInt(document.getElementById("frame-duration").value, 10),
-    //       frameCountAppear: parseInt(document.getElementById("frame-count-appear").value, 10),
-    //       frameCountHide: parseInt(document.getElementById("frame-count-hide").value, 10),
-    //       frameCountFlicker: parseInt(document.getElementById("frame-count-flicker").value, 10),
-    //       branchMaxLengthScale: parseFloat(document.getElementById("branch-max-length").value),
-    //       maxSegmentationLevel: parseInt(document.getElementById("max-segmentation-level").value, 10),
-    //       maximumOffset: parseInt(document.getElementById("maximum-offset").value, 10),
-    //       showEndpoints: document.getElementById("show-endpoints").checked,
-    //       strokeColor: document.getElementById("lightning-color").value,
-    //       branchConcentration: parseInt(document.getElementById("branch-concentration").value, 10),
-    //       offsetCoefficient: parseInt(document.getElementById("offset-coefficient").value, 10),
-    //     }
-    // );
-
-
     lightning = new Lightning(
         {
           canvasContext: ctx,
-          startPoint: {x: 100, y: 100},
-          endPoint: {x: 500, y: 500},
+          startPoint: {
+            x: parseInt(document.getElementById("start-point-x").value, 10),
+            y: parseInt(document.getElementById("start-point-y").value, 10)
+          },
+          endPoint: {
+            x: parseInt(document.getElementById("end-point-x").value, 10),
+            y: parseInt(document.getElementById("end-point-y").value, 10)
+          },
+          animationPhase: phase !== "play-all" ? phase : "appear",
+          playAllPhasesConsecutively: phase === "play-all",
+          frameDuration: parseInt(document.getElementById("frame-duration").value, 10),
+          frameCountAppear: parseInt(document.getElementById("frame-count-appear").value, 10),
+          frameCountHide: parseInt(document.getElementById("frame-count-hide").value, 10),
+          frameCountFlicker: parseInt(document.getElementById("frame-count-flicker").value, 10),
+          branchMaxLengthScale: parseFloat(document.getElementById("branch-max-length").value),
+          maxSegmentationLevel: parseInt(document.getElementById("max-segmentation-level").value, 10),
+          maximumOffset: parseInt(document.getElementById("maximum-offset").value, 10),
+          showEndpoints: document.getElementById("show-endpoints").checked,
+          strokeColor: document.getElementById("lightning-color").value,
+          branchConcentration: parseInt(document.getElementById("branch-concentration").value, 10),
+          offsetCoefficient: parseInt(document.getElementById("offset-coefficient").value, 10),
         }
     );
+
+
+    // lightning = new Lightning(
+    //     {
+    //       canvasContext: ctx,
+    //       startPoint: {x: 100, y: 100},
+    //       endPoint: {x: 500, y: 500},
+    //     }
+    // );
 
     lightning.playLightningAnimation();
 
@@ -116,7 +116,7 @@
     </div>
     <div class="form-group">
       <label for="lightning-color">Lightning color</label>
-      <input type="color" id="lightning-color" name="lightning-color" value="#ffff00">
+      <input type="color" id="lightning-color" name="lightning-color" value="#ffffff">
     </div>
     <div class="form-group">
       <label for="phase">Phase:</label>
